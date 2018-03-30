@@ -47,5 +47,38 @@ sqoop eval \
 --password itversity \
 --query "select count(*) from customers"
 
-sdn sn
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table order_items \
+--warehouse-dir /user/raviteja7/retail_db
+
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table order_items \
+--target-dir /user/raviteja7/retail_db/order_items_tgt
+
+## if the folder already exists sqoop will throw error , 
+## use --delete-target-dir  
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table order_items \
+--target-dir /user/raviteja7/retail_db/order_items_tgt \
+--delete-target-dir
+-m 1
+# to add to exisitng data use append 
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table order_items \
+--target-dir /user/raviteja7/retail_db/order_items_tgt \
+--append \
+-m 1
+
 
