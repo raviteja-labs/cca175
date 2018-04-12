@@ -35,8 +35,56 @@ Found 2 items
 -rw-r--r--   3 raviteja7 hdfs          0 2018-04-11 21:01 test_sqoop_import_gzip/_SUCCESS
 -rw-r--r--   3 raviteja7 hdfs     471106 2018-04-11 21:01 test_sqoop_import_gzip/part-m-00000.gz
 
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table orders \
+--as-textfile \
+--target-dir /user/raviteja7/test_sqoop_import_snappy \
+-m 1 \
+--compression-codec snappy
+
+[raviteja7@gw03 ~]$ hadoop fs -ls test_sqoop_import_snappy
+Found 2 items
+-rw-r--r--   3 raviteja7 hdfs          0 2018-04-11 23:53 test_sqoop_import_snappy/_SUCCESS
+-rw-r--r--   3 raviteja7 hdfs     878331 2018-04-11 23:53 test_sqoop_import_snappy/part-m-00000.snappy
+
 
 Now read from spark-shell 
+val a=sc.textFile("/user/raviteja7/test_sqoop_import_nocomp/part-m-00000");
 
+read compressied file 
+
+val b=sc.textFile("/user/raviteja7/test_sqoop_import_gzip/part-m-00000.gz");
+
+val c=sc.textFile("/user/raviteja7/test_sqoop_import_snappy/part-m-00000.snappy");
+
+
+Save as textFile 
+
+ a.saveAsTextFile("/user/raviteja7/order_saveastext");
+ [raviteja7@gw03 ~]$ hadoop fs -ls order_saveastext
+Found 3 items
+-rw-r--r--   3 raviteja7 hdfs          0 2018-04-12 00:01 order_saveastext/_SUCCESS
+-rw-r--r--   3 raviteja7 hdfs    1499979 2018-04-12 00:01 order_saveastext/part-00000
+-rw-r--r--   3 raviteja7 hdfs    1499965 2018-04-12 00:01 order_saveastext/part-00001
+
+Save as text file with compression 
+
+a.saveAsTextFile("/user/raviteja7/order_saveastextgzip",classOf[org.apache.hadoop.io.compress.GzipCodec])
+
+[raviteja7@gw03 ~]$ hadoop fs -ls order_saveastextgzip
+Found 3 items
+-rw-r--r--   3 raviteja7 hdfs          0 2018-04-12 00:05 order_saveastextgzip/_SUCCESS
+-rw-r--r--   3 raviteja7 hdfs     233422 2018-04-12 00:05 order_saveastextgzip/part-00000.gz
+-rw-r--r--   3 raviteja7 hdfs     237961 2018-04-12 00:05 order_saveastextgzip/part-00001.gz
+
+b.saveAsTextFile("/user/raviteja7/order_saveastextSnappy",classOf[org.apache.hadoop.io.compress.SnappyCodec])
+
+[raviteja7@gw03 ~]$ hadoop fs -ls order_saveastextSnappy
+Found 2 items
+-rw-r--r--   3 raviteja7 hdfs          0 2018-04-12 00:07 order_saveastextSnappy/_SUCCESS
+-rw-r--r--   3 raviteja7 hdfs     878331 2018-04-12 00:07 order_saveastextSnappy/part-00000.snappy
 
 
