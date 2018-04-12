@@ -1,0 +1,42 @@
+text file : 
+
+
+Import : 
+
+using sqoop : 
+
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table orders \
+--as-textfile \
+--target-dir /user/raviteja7/test_sqoop_import_nocomp \
+-m 1 
+
+[raviteja7@gw03 ~]$ hadoop fs -ls test_sqoop_import_nocomp
+Found 2 items
+-rw-r--r--   3 raviteja7 hdfs          0 2018-04-11 20:57 test_sqoop_import_nocomp/_SUCCESS
+-rw-r--r--   3 raviteja7 hdfs    2999944 2018-04-11 20:57 test_sqoop_import_nocomp/part-m-00000
+
+
+sqoop import \
+--connect jdbc:mysql://ms.itversity.com:3306/retail_db \
+--username retail_user \
+--password itversity \
+--table orders \
+--as-textfile \
+--target-dir /user/raviteja7/test_sqoop_import_gzip \
+-m 1 \
+--compression-codec gzip 
+
+[raviteja7@gw03 ~]$ hadoop fs -ls test_sqoop_import_gzip
+Found 2 items
+-rw-r--r--   3 raviteja7 hdfs          0 2018-04-11 21:01 test_sqoop_import_gzip/_SUCCESS
+-rw-r--r--   3 raviteja7 hdfs     471106 2018-04-11 21:01 test_sqoop_import_gzip/part-m-00000.gz
+
+
+Now read from spark-shell 
+
+
+
