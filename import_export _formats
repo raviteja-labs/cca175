@@ -51,7 +51,7 @@ Found 2 items
 -rw-r--r--   3 raviteja7 hdfs     878331 2018-04-11 23:53 test_sqoop_import_snappy/part-m-00000.snappy
 
 
-Now read from spark-shell 
+Now read using spark-shell 
 val a=sc.textFile("/user/raviteja7/test_sqoop_import_nocomp/part-m-00000");
 
 read compressied file 
@@ -88,3 +88,49 @@ Found 2 items
 -rw-r--r--   3 raviteja7 hdfs     878331 2018-04-12 00:07 order_saveastextSnappy/part-00000.snappy
 
 
+Saving as sequence file 
+For sequence file ,we need to have a key 
+
+val seq=a.map(o=>(o.split(",")(0).toInt,o))
+seq.take(10).foreach(println)
+(1,1,2013-07-25 00:00:00.0,11599,CLOSED)
+(2,2,2013-07-25 00:00:00.0,256,PENDING_PAYMENT)
+(3,3,2013-07-25 00:00:00.0,12111,COMPLETE)
+(4,4,2013-07-25 00:00:00.0,8827,CLOSED)
+(5,5,2013-07-25 00:00:00.0,11318,COMPLETE)
+(6,6,2013-07-25 00:00:00.0,7130,COMPLETE)
+(7,7,2013-07-25 00:00:00.0,4530,COMPLETE)
+(8,8,2013-07-25 00:00:00.0,2911,PROCESSING)
+(9,9,2013-07-25 00:00:00.0,5657,PENDING_PAYMENT)
+(10,10,2013-07-25 00:00:00.0,5648,PENDING_PAYMENT)
+
+saveAsSequencefile not working 
+Using compression
+textMap.saveAsSequenceFile("/user/cloudera/ReadDiffFileFormat/text/textoutput/sequenceout/compressed", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec]))
+
+JSON file : To convert text to JSON we need data frame 
+
+
+first create a tuple of all fields otherwise whole record gets stored as a string then convert to dataframe 
+
+val textDF= a.map(p=>(p.split(",")(0),p.split(",")(1),p.split(",")(2),p.split(",")(3))).toDF
+textDF.toJSON.saveAsTextFile("/user/raviteja7/orders_JSON");
+
+textDF.toJSON.saveAsTextFile("/user/raviteja7/orders_JSON_BZIP",classOf[org.apache.hadoop.io.compress.BZip2Codec]);
+
+Using write 
+textDF.write.json("/user/raviteja7/order_json_write")
+sqlContext.setConf("spark.sql.json.compression.codec", "snappy") // this will not work 
+textDF.write.json("/user/raviteja7/order_json_write_snappy")
+
+To Parquet 
+
+textDF.write.parquet("user/raviteja7/order_parq_gzip")
+
+with compression 
+sqlContext.setConf("spark.sql.parquet.compression.codec", "gzip")
+textDF.write.parquet("user/raviteja7/order_parq")
+
+
+val jsonfile=sqlContext.read.json("/user/raviteja7/orders_JSON/part-00000")
+jsonfile.
