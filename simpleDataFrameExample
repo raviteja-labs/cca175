@@ -1,0 +1,34 @@
+spark practice:
+
+val p=sc.textFile("samplepersons")
+ val q=p.filter(line => !line.contains("Name"))
+
+ case class Person(a:String,b:Int)
+ val personRDD=q.map(h=>h.split(",")).map(k=>Person(k(0),k(1).trim().toInt))
+val personDF=personRDD.toDF
+
+personDF.registerTempTable("person_sample")
+
+ sqlContext.sql("select * from person_sample").show
+
++--------+---+
+|       a|  b|
++--------+---+
+| Vinayak| 35|
+|  Nilesh| 37|
+|    Raju| 30|
+| Karthik| 28|
+|Shreshta|  1|
+|Siddhish|  2|
++--------+---+
+
+
+ sqlContext.sql("select * from person_sample where b>30").show
++-------+---+
+|      a|  b|
++-------+---+
+|Vinayak| 35|
+| Nilesh| 37|
++-------+---+
+
+ 

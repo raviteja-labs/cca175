@@ -104,18 +104,16 @@ seq.take(10).foreach(println)
 (9,9,2013-07-25 00:00:00.0,5657,PENDING_PAYMENT)
 (10,10,2013-07-25 00:00:00.0,5648,PENDING_PAYMENT)
 
-saveAsSequencefile not working 
+
 Using compression
-textMap.saveAsSequenceFile("/user/cloudera/ReadDiffFileFormat/text/textoutput/sequenceout/compressed", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec]))
+seq.saveAsSequenceFile("order_text_to_seq_bzip", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec]))  /// it works and reuces size 
 
 JSON file : To convert text to JSON we need data frame 
-
-
 first create a tuple of all fields otherwise whole record gets stored as a string then convert to dataframe 
 
 val textDF= a.map(p=>(p.split(",")(0),p.split(",")(1),p.split(",")(2),p.split(",")(3))).toDF
 textDF.toJSON.saveAsTextFile("/user/raviteja7/orders_JSON");
-
+using compression 
 textDF.toJSON.saveAsTextFile("/user/raviteja7/orders_JSON_BZIP",classOf[org.apache.hadoop.io.compress.BZip2Codec]);
 
 Using write 
@@ -124,13 +122,172 @@ sqlContext.setConf("spark.sql.json.compression.codec", "snappy") // this will no
 textDF.write.json("/user/raviteja7/order_json_write_snappy")
 
 To Parquet 
-
 textDF.write.parquet("user/raviteja7/order_parq_gzip")
-
 with compression 
 sqlContext.setConf("spark.sql.parquet.compression.codec", "gzip")
 textDF.write.parquet("user/raviteja7/order_parq")
 
 
-val jsonfile=sqlContext.read.json("/user/raviteja7/orders_JSON/part-00000")
-jsonfile.
+To orc 
+textDF.write.orc("user/raviteja7/order_orc")
+with compression 
+sqlContext.setConf("spark.sql.orc.compression.codec", "gzip")
+textDF.write.orc("user/raviteja7/order_orc")
+
+
+to avro 
+textDF.write.avro("user/raviteja7/order_avro")
+with compression 
+sqlContext.setConf("spark.sql.avro.compression.codec", "gzip")
+textDF.write.orc("user/raviteja7/order_avro")
+
+****************************************************************************************************
+READ FROM JSON WRITE TO OTHER FORMATS 
+to text 
+val jsonfile=sqlContext.read.json("/user/raviteja7/orders_JSON/part-00000")  
+jsonfile.rdd.saveAsTextFile("json_text") // do not save in this was , it will save json format as text 
+	
+val jsonFileMap = jsonfile.rdd.map(e => (e.getString(0) + "," + e.getString(1) + "," + e.getString(2) + "," + e.getString(3)))
+jsonFileMap.saveAsTextFile("jsonmap_text")
+jsonFileMap.saveAsTextFile("jsonmap_text_gzip",classOf[org.apache.hadoop.io.compress.gzipCodec])
+
+
+
+to parquet 
+val jsonfile=sqlContext.read.json("/user/raviteja7/orders_JSON/part-00000")  
+sqlContext.setConf("spark.sql.parquet.compression.codec", "uncompressed")
+jsonfile.write.parquet("orders_json_to_parq")
+
+to orc 
+sqlContext.setConf("spark.sql.orccompression.codec", "uncompressed")
+jsonfile.write.orc("orders_json_to_orc")
+
+to avro 
+
+ spark-shell --master yarn --packages com.databricks:spark-avro_2.10:2.0.1 --conf spark.ui.port=22343
+
+import com.databricks.spark.avro._
+
+//in case if it does not work 
+import com.databricks.spark.avro._
+import org.apache.spark.sql.SQLContext
+val sqlc = new org.apache.spark.sql.SQLContext(sc)
+import sqlc.implicits._
+
+jsonfile.write.avro("orders_json_to_avro") 
+ 
+val jsonMap = jsonfile.rdd.map(e => (e.getLong(0), (e.getLong(0) + "," + e.getString(1) + "," + e.getLong(2) + "," + e.getString(3))))
+ jsonmap.saveAsSequenceFile("json_sequence")
+jsonmap.saveAsSequenceFile("orders_json_to_avrocomp", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec]))
+
+READ frOM PARQUET , WRITE to other formats 
+
+val opar= sqlContext.read.parquet("order_json_to_parq")
+
+val opartextmap =opar.rdd.map(o => (o.getString(0),o.getString(1),o.getString(2),o.getString(3)))
+
+ opartextmap.saveAsTextFile("par_txt")
+
+opartextmap.saveAsTextFile("par_txt_cmp",classOf[org.apache.hadoop.io.compress.SnappyCodec])
+
+
+
+TO JSON 
+opar.write.json("parq_jason_nomap")
+ {"_1":"17355","_2":"2013-11-10 00:00:00.0","_3":"10080","_4":"CLOSED"}
+{"_1":"17356","_2":"2013-11-10 00:00:00.0","_3":"8462","_4":"CLOSED"}
+{"_1":"17357","_2":"2013-11-10 00:00:00.0","_3":"10253","_4":"PENDING"}
+{"_1":"17358","_2":"2013-11-10 00:00:00.0","_3":"6868","_4":"PENDING"}
+{"_1":"17359","_2":"2013-11-10 00:00:00.0","_3":"7531","_4":"PENDING_PAYMENT"}
+{"_1":"17360","_2":"2013-11-10 00:00:00.0","_3":"7125","_4":"PENDING_PAYMENT"}
+
+
+val oparMap=opar.map(o=>(o.getString(0),o.getString(1),o.getString(2),o.getString(3)).toDF
+
+oparMap.write.json("order_par_json_map")
+{"_1":"34555","_2":"2014-02-23 00:00:00.0","_3":"443","_4":"CLOSED"}
+{"_1":"34556","_2":"2014-02-23 00:00:00.0","_3":"10877","_4":"PENDING"}
+{"_1":"34557","_2":"2014-02-23 00:00:00.0","_3":"5585","_4":"PENDING_PAYMENT"}
+{"_1":"34558","_2":"2014-02-23 00:00:00.0","_3":"1024","_4":"PENDING_PAYMENT"}
+{"_1":"34559","_2":"2014-02-23 00:00:00.0","_3":"8676","_4":"PROCESSING"}
+{"_1":"34560","_2":"2014-02-23 00:00:00.0","_3":"7036","_4":"PENDING"}
+{"_1":"34561","_2":"2014-02-23 00:00:00.0","_3":"2027","_4":"COMPLETE"}
+{"_1":"34562","_2":"2014-02-23 00:00:00.0","_3":"1497","_4":"CLOSED"}
+{"_1":"34563","_2":"2014-02-23 00:00:00.0","_3":"477","_4":"CLOSED"}
+{"_1":"34564","_2":"2014-02-23 00:00:00.0","_3":"12151","_4":"CLOSED"}
+
+sqlContext.setConf("spark.sql.json.compression.codec", "gzip") 
+oparMap.write.json("order_par_json_map_gzip")   /// it does not work this way 
+ 
+
+For Json always use toJSON.saveAsTextFile
+
+oparMap.toJSON.saveAsTextFile("json_text_saveas")
+{"_1":"17359","_2":"2013-11-10 00:00:00.0","_3":"7531","_4":"PENDING_PAYMENT"}
+{"_1":"17360","_2":"2013-11-10 00:00:00.0","_3":"7125","_4":"PENDING_PAYMENT"}
+oparMap.toJSON.saveAsTextFile("json_text_saveas_snappy",classOf[org.apache.hadoop.io.compress.SnappyCodec]) ///This is right way 
+
+
+
+ orc 	
+
+ opar.write.orc("par_orc.nomap")	
+
+ sqlContext.setConf("spark.sql.orc.compression.codec", "gzip")
+		
+avro 	
+
+opar.write.avro("par_avro.nomap")	
+		
+seq 	val oparseqMap = opar.rdd.map(e => (e.getString(0), (e.getString(0) + "," + e.getString(1) + "," + e.getString(2) + "," + e.getString(3))))   OparseqMap.saveAsSequenceFile("par_sequence")	oparseqMap.saveAsSequenceFile("orders_json_to_avrocomp", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec])) 
+	
+**************************************************************************************************8
+READ ORC 	
+	val oorc= sqlContext.read.orc("par_orc.nomap")	
+textfile 	val oorctextmap =oorc.rdd.map(o => (o.getString(0),o.getString(1),o.getString(2),o.getString(3)))   oorctextmap.saveAsTextFile("orc_txt") 	opartextmap.saveAsTextFile("par_txt_cmp",classOf[org.apache.hadoop.io.compress.SnappyCodec]) 
+		
+json 	Foe Json always use toJSON.saveAsTextFile 
+
+val oorcMap=oorc.map(o=>(o.getString(0),o.getString(1),o.getString(2),o.getString(3)).toDF oorcMap.toJSON.saveAsTextFile("orc_text_saveas") 	oparMap.toJSON.saveAsTextFile("json_text_saveas_snappy",classOf[org.apache.hadoop.io.compress.SnappyCodec])
+		
+parquet 	
+
+oorc.write.parquet("orc_par.nomap")	
+
+sqlContext.setConf("spark.sql.orc.compression.codec", "gzip")
+		
+avro 	
+oorc.write.avro("orc_avro.nomap")	
+sqlContext.setConf("spark.sql.orc.compression.codec", "gzip")
+		
+
+seq 	
+val oorcseqMap = oorc.rdd.map(e => (e.getString(0), (e.getString(0) + "," + e.getString(1) + "," + e.getString(2) + "," + e.getString(3))))    OorcseqMap.saveAsSequenceFile("orc_sequence")	
+
+oorcseqMap.saveAsSequenceFile("orders_orc_to_seqcomp", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec])) 
+		
+		
+	READ AVRO	
+	val avrof= sqlContext.read.avro("orc_avro.nomap")	
+textfile 	
+Val avromap =avrof.rdd.map(o => (o.getString(0),o.getString(1),o.getString(2),o.getString(3)))   
+avromap.saveAsTextFile("avro_txt") 	
+avromap.saveAsTextFile("avro_txt_cmp",classOf[org.apache.hadoop.io.compress.SnappyCodec]) 
+		
+json 	For Json always use toJSON.saveAsTextFile 
+val avrofMap=avrof.map(o=>(o.getString(0),o.getString(1),o.getString(2),o.getString(3))).toDF 
+AvrofMap.toJSON.saveAsTextFile("avro_json_saveas") 			
+avrofMap.toJSON.saveAsTextFile("json_text_saveas_snappy",classOf[org.apache.hadoop.io.compress.SnappyCodec])
+
+parquet 	
+avrof.write.parquet("avrof_par.nomap")	
+sqlContext.setConf("spark.sql.orc.compression.codec", "gzip")
+		
+
+avro 	
+avrof.write.avro("avro_avro.nomap")	
+sqlContext.setConf("spark.sql.orc.compression.codec", "gzip")
+		
+seq 	
+Val avrofseqMap = oorc.rdd.map(e => (e.getString(0), (e.getString(0) + "," + e.getString(1) + "," + e.getString(2) + "," + e.getString(3))))   AvrofseqMap.saveAsSequenceFile("orc_sequence")	
+avrofseqMap.saveAsSequenceFile("orders_orc_to_seqcomp", Some(classOf[org.apache.hadoop.io.compress.BZip2Codec])) 

@@ -1,0 +1,47 @@
+5679861,HN486359,07/24/2007 04:00:00 PM,028XX W POLK ST,1320,CRIMINAL DAMAGE,TO VEHICLE,STREET,
+false,true,1135,011,2,27,14,1157552,1896244,2007,04/15/2016 08:55:02 AM,41.871052912,-87.697039137,"(41.871052912, -87.697039137)"
+
+
+ case class Crime (ID int,Case Number String,Date date,Block String ,IUCR int,Primary Type String,Description String,Location  String Description String,Arrest boolean	,Domestic,Beat,District,Ward,Community Area,FBI Code,X Coordinate,Y Coordinate,Year,Updated On,Latitude,Longitude,Location)String
+
+ val crimes=sc.textFile("/public/crime/csv")
+
+ val cheader=crimes.first 
+
+
+ val crimeNohead=crimes.filter(c=>c!=cheader)
+
+ 07/24/2007
+5679863,HN488302,07/24/2007 01:00:00 PM,082XX S TALMAN AVE,0460,BATTERY,SIMPLE,STREET,false,false,0835,008,18,70,08B,1160134,1850078,2007,04/15/2016 08:55:02 AM,41.744314668,-87.688830696,"(41.744314668, -87.688830696)"
+
+
+val crimetrim=crimeNohead.map( p=> {
+val date = p.split(",")(2) 
+val dt = date.split(" ")(0) 
+val month=dt.split("/")(2)+dt.split("/")(0)
+(month.toInt,p.split(",")(5))
+})
+ 
+
+ val crimetrim=crimeNohead.
+  map(rec => {
+    val r = rec.split(",")
+    val d = r(2).split(" ")(0) // 12/31/2007
+    val m = d.split("/")(2) + d.split("/")(0) //200712
+    ((m.toInt, r(5), 1)  
+  })
+
+
+
+
+  val crimedf=crimetrim.toDF("month","type")
+
+
+  crimedf.registerTempTable("crimes")
+
+  val c=sqlContext.sql("select * from crimes limit 10")
+
+   val c=sqlContext.sql("select month,type, count(1) count from crimes group by month,type order by month,count desc ")
+
+ c.rdd.mkString("\t").saveAsTextFile("rpoblem1text")
+   c.rdd.map(k=>k.mkString("\"")).saveAsTextFile("rpoblem1textdoubleqou")
