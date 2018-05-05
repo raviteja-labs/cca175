@@ -1,0 +1,47 @@
+--Data is available in HDFS file system under /public/crime/csv
+--Structure of data (ID,Case Number,Date,Block,IUCR,Primary Type,Description,Location Description,Arrest,Domestic,Beat,District,Ward,Community Area,FBI Code,X --Coordinate,Y Coordinate,Year,Updated On,Latitude,Longitude,Location)
+--File format - text file
+--Delimiter - “,” (use regex while splitting split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1), as there are some fields with comma and enclosed using double quotes.
+
+
+val crimeFile=sc.textFile("/public/crime/csv/crime_data.csv")
+
+
+val crimeDF= crimeFile.map(c=> {
+val r =c.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1)
+(r(7),r(5))
+}).toDF("Residence","Crime_Type")
+
+crimeDF.registerTempTable("crime")
+
+sqlContext.sql("select Residence,Crime_Type,count(Crime Type) from crime")
+val resDF=sqlContext.sql("select Crime_Type, count(Crime_Type) as c from crime where Residence='RESIDENCE' group by  Crime_Type  order by c desc LIMIT 3")
+
++-------------+------+
+|   Crime_Type|     c|
++-------------+------+
+|      BATTERY|244394|
+|OTHER OFFENSE|184667|
+|        THEFT|142273|
++-------------+------+
+
+
+
+sqlContext.sql("select * from (" +
+                 "select Crime_Type, count(1) crime_count " +
+                 "from crime  " +
+                 "where Residence = 'RESIDENCE' " +
+                 "group by Crime_Type " +
+                 "order by crime_count desc) q " +
+               "limit 3").show
+
+
++-------------+-----------+
+|   Crime_Type|crime_count|
++-------------+-----------+
+|      BATTERY|     244394|
+|OTHER OFFENSE|     184667|
+|        THEFT|     142273|
++-------------+-----------+
+
+resDF.coalesce(1).save("/user/raviteja7/solutions/solution03/RESIDENCE_AREA_CRIMINAL_TYPE_DATA","json").overwrite

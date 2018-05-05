@@ -1,0 +1,17 @@
+
+
+
+
+import scala.io.Source
+
+val ord=Source.fromFile("/data/retail_db/orders/part-00000")
+
+val ordFile=sc.parallelize("ord")
+val ordFile=sc.parallelize("/data/retail_db/orders/part-00000")
+
+val a = sqlContext.
+  sql("select customer_lname, customer_fname " + 
+      "from customers_dg  inner join orders_dg " +
+      "on customer_id = order_customer_id " +
+      "where order_customer_id is null " +
+      "order by customer_lname, customer_fname").
